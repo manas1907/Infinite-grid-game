@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infinite Grid</title>
+  <style>
+    /* General Styling */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #000;
+      overflow: hidden;
+    }
+
+    .screen {
+      display: none;
+      text-align: center;
+      width: 90%;
+      max-width: 500px;
+      padding: 20px;
+      background: #222;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #00ff00;
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+    }
+
+    .fade-in {
+      animation: fade-in 2s ease-in-out;
+      font-size: 1.2rem;
+      color: #555;
+      margin: 20px 0;
+    }
+
+    .user-input {
+      margin-top: 20px;
+    }
+
+    input, select, button {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 1rem;
+      width: 80%;
+      border: 1px solid #00ff00;
+      border-radius: 5px;
+      outline: none;
+      color: #00ff00;
+      background-color: #222;
+    }
+
+    button {
+      background-color: #00ff00;
+      color: #000;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #33cc33;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+      margin: 20px auto;
+    }
+
+    .tile {
+      background-color: #333;
+      color: transparent; /* Initially hidden */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      height: 60px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      border: 1px solid #00ff00;
+    }
+
+    .tile.revealed {
+      color: #00ff00; /* Reveal the number with glowing green */
+      background-color: #222;
+    }
+
+    .trap {
+      background-color: #ff0000;
+    }
+
+    .swap {
+      background-color: #ff8000;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      color: #00ff00;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.2rem;
+      margin-top: 20px;
+      color: #00ff00;
+    }
+
+    .scoreboard div {
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Swap Animation */
+    @keyframes swap-animation {
+      0%, 100% { color: #00ff00; transform: scale(1); }
+      50% { color: #ff0000; transform: scale(1.2); }
+    }
+
+    .swap-animation {
+      animation: swap-animation 1s infinite;
+    }
+
+    /* Winner Screen Styles */
+    .winner-screen {
+      display: none;
+      text-align: center;
+      width: 90%;
+      max-width: 500px;
+      padding: 30px;
+      background: #222;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .winner-screen.active {
+      display: block;
+    }
+
+    /* Style for the logo */
+    .logo {
+        width: 300px;  /* Adjust the width as per your preference */
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+
+    .winner-animation {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(45deg, #34eb89, #34a3eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: winner-glow 2s infinite alternate;
+    }
+
+    @keyframes winner-glow {
+      0% { text-shadow: 0 0 10px #34eb89, 0 0 20px #34eb89; }
+      100% { text-shadow: 0 0 20px #34a3eb, 0 0 40px #34a3eb; }
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+<div id="start-screen" class="screen active">
+    <img src="game logo.webp" alt="Infinite Grid Logo" class="logo">
+    <div class="user-input">
+      <input type="text" id="username" placeholder="Enter your name">
+      <select id="grid-size">
+        <option value="4">4x4</option>
+        <option value="6" selected>6x6</option>
+      </select>
+      <button id="start-game-btn">Start Game</button>
+    </div>
+  </div>
+  
+  <!-- Game Screen -->
+  <div id="game-screen" class="screen">
+    <img src="game logo.webp" alt="Infinite Grid Logo" class="logo">
+    <div class="scoreboard">
+      <div id="user-score">User: 0</div>
+      <div id="ai-score">AI: 0</div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="message" id="message">Your turn! Choose wisely...</div>
+  </div>
+  
+  <!-- Winner Screen -->
+  <div id="winner-screen" class="winner-screen">
+    <img src="game logo.webp" alt="Infinite Grid Logo" class="logo">
+    <h1 class="winner-animation" id="winner-message"></h1>
+    <button id="restart-btn">Restart Game</button>
+  </div>  
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+  const startScreen = document.getElementById("start-screen");
+  const gameScreen = document.getElementById("game-screen");
+  const winnerScreen = document.getElementById("winner-screen");
+  const startGameBtn = document.getElementById("start-game-btn");
+  const restartBtn = document.getElementById("restart-btn");
+  const gridElement = document.getElementById("grid");
+  const message = document.getElementById("message");
+  const userScoreElement = document.getElementById("user-score");
+  const aiScoreElement = document.getElementById("ai-score");
+  const winnerMessage = document.getElementById("winner-message");
+
+  let gridSize = 6; // Default grid size
+  let username = "User"; // Default username
+  let userScore = 0;
+  let aiScore = 0;
+  let userTurn = true; // User starts
+  let gameGrid = []; // Game state
+
+  const maxSpecialTiles = 3; // Maximum trap and swap tiles each
+
+  // Function to generate grid
+  function generateGrid(size) {
+    gridElement.innerHTML = "";
+    gridElement.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    gameGrid = Array(size)
+      .fill(null)
+      .map(() => Array(size).fill(null));
+
+    const totalTiles = size * size;
+    const specialTiles = placeSpecialTiles(totalTiles, maxSpecialTiles);
+
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        const tile = document.createElement("div");
+        tile.classList.add("tile");
+
+        // Determine tile type based on specialTiles array
+        const tileIndex = i * size + j;
+        if (specialTiles.trapTiles.includes(tileIndex)) {
+          tile.dataset.type = "trap";
+        } else if (specialTiles.swapTiles.includes(tileIndex)) {
+          tile.dataset.type = "swap";
+        } else {
+          tile.dataset.type = "normal";
+        }
+
+        // Assign a random number for scoring
+        if (tile.dataset.type === "normal") {
+          tile.textContent = Math.floor(Math.random() * 10) + 1;
+        } else {
+          tile.textContent = Math.floor(Math.random() * 10) + 1; // Normal appearance
+        }
+
+        tile.addEventListener("click", () => handleTileClick(tile, i, j));
+        gridElement.appendChild(tile);
+        gameGrid[i][j] = tile;
+      }
+    }
+  }
+
+  // Place Trap and Swap tiles randomly
+  function placeSpecialTiles(totalTiles, maxSpecial) {
+    const allIndices = Array.from({ length: totalTiles }, (_, i) => i);
+    const trapTiles = [];
+    const swapTiles = [];
+
+    while (trapTiles.length < maxSpecial) {
+      const index = Math.floor(Math.random() * allIndices.length);
+      trapTiles.push(allIndices.splice(index, 1)[0]);
+    }
+
+    while (swapTiles.length < maxSpecial) {
+      const index = Math.floor(Math.random() * allIndices.length);
+      swapTiles.push(allIndices.splice(index, 1)[0]);
+    }
+
+    return { trapTiles, swapTiles };
+  }
+
+  // Handle Start Game Button
+  startGameBtn.addEventListener("click", () => {
+    username = document.getElementById("username").value || "Player";
+    gridSize = parseInt(document.getElementById("grid-size").value, 10);
+    startScreen.classList.remove("active");
+    gameScreen.classList.add("active");
+    userScore = 0;
+    aiScore = 0;
+    userScoreElement.textContent = `${username}: 0`;
+    aiScoreElement.textContent = "AI: 0";
+    generateGrid(gridSize);
+    message.textContent = `${username}, it's your turn!`;
+  });
+
+  // Handle Restart Game Button
+  restartBtn.addEventListener("click", () => {
+    winnerScreen.classList.remove("active");
+    startScreen.classList.add("active");
+  });
+
+  // Handle Tile Click
+  function handleTileClick(tile, row, col) {
+    if (!userTurn || tile.classList.contains("revealed")) return;
+
+    tile.classList.add("revealed");
+    const type = tile.dataset.type;
+
+    if (type === "trap") {
+        userScore = 0; // Reset user's score to 0
+        tile.textContent = "TRAP"; // Highlight trap tile
+        message.textContent = "You hit a trap! AI's turn.";
+    
+    } else if (type === "swap") {
+        tile.textContent = "SWAP"; // Highlight swap tile
+        message.textContent = "Swapping scores!";
+        // Swap the scores of the user and AI
+        [userScore, aiScore] = [aiScore, userScore];
+    }   
+    else {
+      userScore += parseInt(tile.textContent, 10);
+      message.textContent = "Good choice! AI's turn.";
+    }
+
+    userScoreElement.textContent = `${username}: ${userScore}`;
+    userTurn = false;
+    aiTurn();
+  }
+
+  // AI Turn Logic
+  function aiTurn() {
+    setTimeout(() => {
+      const availableTiles = Array.from(gridElement.querySelectorAll(".tile:not(.revealed)"));
+      if (availableTiles.length === 0) {
+        endGame();
+        return;
+      }
+
+      const aiTile = availableTiles[Math.floor(Math.random() * availableTiles.length)];
+      aiTile.classList.add("revealed");
+
+      const type = aiTile.dataset.type;
+      if (type === "trap") {
+        aiTile.textContent = "TRAP"; // Highlight trap tile
+        aiScore = 0; // Deduct to 0
+        message.textContent = "AI hit a trap! Your turn.";
+      } else if (type === "swap") {
+        aiTile.textContent = "SWAP"; // Highlight swap tile
+        message.textContent = "AI triggered a score swap!";
+        [userScore, aiScore] = [aiScore, userScore]; // Swap scores
+      } else {
+        aiScore += parseInt(aiTile.textContent, 10);
+        message.textContent = "AI scored! Your turn.";
+      }
+
+      aiScoreElement.textContent = `AI: ${aiScore}`;
+      userTurn = true;
+
+      if (Array.from(gridElement.querySelectorAll(".tile:not(.revealed)")).length === 0) {
+        endGame();
+      }
+    }, 1000);
+  }
+
+  // End Game
+  function endGame() {
+    gameScreen.classList.remove("active");
+    winnerScreen.classList.add("active");
+
+    if (userScore > aiScore) {
+      winnerMessage.textContent = `${username} Wins!`;
+    } else if (aiScore > userScore) {
+      winnerMessage.textContent = "AI Wins!";
+    } else {
+      winnerMessage.textContent = "It's a Tie!";
+    }
+  }
+});
+  </script>
+</body>
+</html>
